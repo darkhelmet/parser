@@ -1,11 +1,12 @@
 package parser
 
-type Reader interface {
-    Peek(n int) ([]byte, error)
-    Read(p []byte) (int, error)
-    ReadByte() (byte, error)
-}
+import (
+    "io"
+)
 
-type Parser interface {
-    Parse(Reader) (error, bool, interface{}, Reader)
+type Parser func(*Reader) (interface{}, *Reader, error)
+
+func Parse(parser Parser, r io.Reader) (interface{}, error) {
+    i, _, err := parser(NewReader(r))
+    return i, err
 }

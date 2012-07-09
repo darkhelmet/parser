@@ -4,29 +4,21 @@ import (
     "fmt"
 )
 
-type andParser struct {
-    parsers []Parser
-}
-
-func (p *andParser) String() string {
-    return fmt.Sprintf("%v", p.parsers)
-}
-
-func (p *andParser) Parse(reader Reader) (error, bool, interface{}, Reader) {
-    results := make([]interface{}, 0, len(p.parsers))
-    rd := reader
-    for _, parser := range p.parsers {
-        err, consumed, result, rd := parser.Parse(rd)
-        if consumed {
+func And(parsers ...Parser) Parser {
+    return func(r *Reader) (interface{}, *Reader, error) {
+        results := make([]interface{}, 0, len(parsers))
+        rd := r
+        for _, parser := range parsers {
+            var (
+                err    error
+                result interface{}
+            )
+            result, rd, err = parser(rd)
             if err != nil {
-                return fmt.Errorf("Parser %v consumed input, but returned error: %s", parser, err), true, nil, rd
+                return nil, r, fmt.Errorf("Failed to parse: %s", err)
             }
             results = append(results, result)
         }
+        return results, rd, nil
     }
-    return nil, true, results, rd
-}
-
-func And(parsers ...Parser) Parser {
-    return &andParser{parsers}
 }
